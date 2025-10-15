@@ -1,0 +1,1290 @@
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciador de Contas - Multi-Mês Avançado</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --cor-primaria: #1A73E8; /* Azul moderno */
+            --cor-secundaria: #34A853; /* Verde para Sucesso/Pagamento */
+            --cor-alerta: #EA4335;    /* Vermelho para Perigo/A pagar */
+            --cor-fundo: #F5F7FA;     /* Fundo extra-claro */
+            --cor-sombra-suave: rgba(0, 0, 0, 0.08);
+            --cor-borda-clara: #E0E4E8;
+            --cor-edicao: #fff7e6;
+            --cor-recorrencia: #FF9800;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--cor-fundo);
+            color: #3C4043;
+        }
+
+        h1, h2 {
+            color: #202124;
+            font-weight: 600;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px;
+            box-shadow: 0 4px 12px var(--cor-sombra-suave);
+            border-radius: 12px;
+        }
+
+        /* --- Seletor de Mês/Ano --- */
+        .month-selector {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 30px;
+            padding: 15px 20px;
+            border: 1px solid var(--cor-borda-clara);
+            border-radius: 8px;
+            background-color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .month-selector label {
+            font-weight: 600;
+            color: #202124;
+            margin-right: -10px;
+        }
+
+        .month-selector select {
+            padding: 10px 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            background-color: white;
+            transition: border-color 0.3s;
+            appearance: none;
+            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http://www.w3.org/2000/svg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%231A73E8%22%20d%3D%22M287%20197.35L146.2%2056.6%205.4%20197.35z%22%2F%3E%3C%2Fsvg%3E');
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 10px;
+        }
+        
+        /* --- Abas de Navegação --- */
+        .tabs {
+            display: flex;
+            margin-bottom: 30px;
+            border-bottom: 2px solid var(--cor-borda-clara);
+        }
+
+        .tab-button {
+            padding: 12px 20px;
+            cursor: pointer;
+            border: none;
+            background-color: transparent;
+            font-weight: 500;
+            color: #616161;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .tab-button.active {
+            color: var(--cor-primaria);
+            font-weight: 600;
+        }
+
+        .tab-button.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background-color: var(--cor-primaria);
+            border-radius: 2px 2px 0 0;
+        }
+
+        /* --- Formulário de Cadastro (Aba Novo Lançamento) --- */
+        .card-form {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--cor-borda-clara);
+        }
+
+        #cadastro-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr; 
+            gap: 25px;
+        }
+        
+        #cadastro-form button[type="submit"] {
+            grid-column: 1 / -1; 
+            padding: 14px;
+            font-weight: 600;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: background-color 0.3s, transform 0.1s;
+            font-size: 1.1em;
+            background-color: var(--cor-primaria); 
+        }
+        
+        #cadastro-form button[type="submit"]:hover {
+            background-color: #155bbd;
+            transform: translateY(-1px);
+        }
+        
+        #cadastro-form label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+            color: #495057;
+            font-weight: 600;
+        }
+
+        #cadastro-form input, #cadastro-form select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #d4d4d4;
+            border-radius: 8px;
+            box-sizing: border-box;
+            background-color: #fcfcfc;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        
+        #cadastro-form input:focus, #cadastro-form select:focus {
+            border-color: var(--cor-primaria);
+            box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.2);
+            background-color: white;
+            outline: none;
+        }
+        
+        /* --- VISUALIZAÇÃO: Filtros (Agrupados) e Totalizadores --- */
+        
+        /* Container que agora empilha filtros e totalizadores */
+        .visualizacao-header {
+            display: flex; 
+            flex-direction: column; /* Empilha verticalmente */
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        /* Wrapper para todos os filtros (3 em linha) */
+        .filters-wrapper {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr); /* 3 filtros em linha para desktop */
+            gap: 15px;
+            padding: 15px;
+            border: 1px solid var(--cor-borda-clara);
+            border-radius: 8px;
+            background-color: #fff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+        
+        .filters-wrapper label {
+            font-size: 0.9em;
+            font-weight: 500;
+            display: block;
+            margin-bottom: 5px;
+        }
+        .filters-wrapper select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+
+        /* Barra de Totalizadores agora usa 3 colunas por padrão */
+        .summary-bar {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr); /* 3 totalizadores em linha (padrão desktop/médio) */
+            gap: 15px;
+        }
+
+        .summary-item {
+            background-color: #fff;
+            padding: 15px;
+            border: 1px solid var(--cor-borda-clara);
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            font-size: 0.9em;
+        }
+        .summary-item strong {
+            display: block;
+            font-size: 1.3em; /* Um pouco maior */
+            font-weight: 700;
+            margin-top: 5px;
+        }
+        .summary-item #total-filtrado { color: var(--cor-primaria); }
+        .summary-item #pago-filtrado { color: var(--cor-secundaria); }
+        .summary-item #apagar-filtrado { color: var(--cor-alerta); }
+        
+        /* --- Tabela de Contas --- */
+        .table-container {
+            border-radius: 8px;
+            overflow: hidden; 
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--cor-borda-clara);
+        }
+        
+        #tabela-contas {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        #tabela-contas th, #tabela-contas td {
+            padding: 15px 12px; 
+            text-align: left;
+            border-bottom: 1px solid #f0f0f0;
+            vertical-align: middle;
+        }
+
+        #tabela-contas th {
+            background-color: #e9eef6; 
+            color: #202124;
+            font-weight: 600;
+            font-size: 0.9em;
+            text-transform: uppercase;
+        }
+        
+        #tabela-contas tbody tr {
+            transition: background-color 0.3s;
+        }
+
+        #tabela-contas tbody tr:hover {
+            background-color: #f7f9fc; 
+            cursor: pointer;
+        }
+        
+        /* --- RELATÓRIOS: Ajuste do Grid de Cartões --- */
+        
+        .report-section {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr); /* 4 cartões em linha para desktop */
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .report-card {
+            background-color: #ffffff;
+            padding: 25px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); 
+            border-left: 5px solid; 
+            transition: transform 0.3s;
+        }
+        
+        .report-card h3 {
+            margin-top: 0;
+            font-size: 1em;
+            color: #555;
+        }
+
+        .report-card p {
+            font-size: 1.5em;
+            font-weight: 700;
+            margin: 5px 0 0 0;
+        }
+        
+        /* Cores da borda dos cartões de relatório */
+        .report-card.total { border-left-color: var(--cor-primaria); }
+        .report-card.pago { border-left-color: var(--cor-secundaria); }
+        .report-card.apagar { border-left-color: var(--cor-alerta); }
+        .report-card.contas { border-left-color: #FFC107; } /* Amarelo para contagem */
+        
+        /* Progress Bar nos Relatórios */
+        .detail-report ul {
+            list-style: none;
+            padding: 0;
+            background-color: #fcfcfc;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--cor-borda-clara);
+        }
+
+        .detail-report li {
+            padding: 12px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+            background-color: #ffffff;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+            transition: background-color 0.3s;
+        }
+        .progress-bar {
+            flex-grow: 1;
+            height: 8px;
+            margin: 0 15px;
+            background-color: var(--cor-borda-clara);
+            border-radius: 4px;
+        }
+        .progress-fill {
+            height: 100%;
+            background-color: var(--cor-primaria);
+            border-radius: 4px;
+            transition: width 0.5s ease-out;
+        }
+        
+        /* --- BACKUP/RESTAURAÇÃO: Mantido o Visual Moderno --- */
+        .backup-section {
+            padding: 40px; 
+            background-color: #fff;
+            border: 1px solid var(--cor-borda-clara);
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        }
+        
+        .backup-action {
+            padding: 20px; 
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        /* Adicionando alguns estilos para botões de ação na tabela */
+        .edit-btn { background-color: #FFC107; color: #333; border: none; }
+        .duplicate-btn { background-color: #17A2B8; color: white; border: none; }
+        .recorrencia-btn { background-color: #6f42c1; color: white; border: none; }
+        .delete-btn { background-color: var(--cor-alerta); color: white; border: none; }
+        .quick-status-btn.pago { background-color: var(--cor-secundaria); color: white; border: none; }
+        .quick-status-btn.apagar { background-color: #e0e0e0; color: #333; border: none; }
+
+        .status-apagar { color: var(--cor-alerta); font-weight: 600; }
+        .status-pago { color: var(--cor-secundaria); font-weight: 600; }
+
+        /* --- Responsividade --- */
+        @media (max-width: 992px) {
+            /* visualizacao-header já está empilhando */
+            .filters-wrapper {
+                 grid-template-columns: 1fr; /* Filtros um em cima do outro */
+            }
+            .summary-bar {
+                grid-template-columns: repeat(3, 1fr); /* Mantém os totalizadores em linha para telas médias */
+            }
+            .report-section {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        @media (max-width: 576px) {
+            .summary-bar {
+                grid-template-columns: 1fr; /* Totalizadores um em cima do outro */
+            }
+            .report-section {
+                grid-template-columns: 1fr;
+            }
+            #cadastro-form {
+                grid-template-columns: 1fr;
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Gerenciador Financeiro Pessoal</h1>
+
+    <div class="month-selector">
+        <label for="mes-selector">Mês de Referência:</label>
+        <select id="mes-selector" onchange="mudarMesReferencia()">
+            <option value="01">Janeiro</option>
+            <option value="02">Fevereiro</option>
+            <option value="03">Março</option>
+            <option value="04">Abril</option>
+            <option value="05">Maio</option>
+            <option value="06">Junho</option>
+            <option value="07">Julho</option>
+            <option value="08">Agosto</option>
+            <option value="09">Setembro</option>
+            <option value="10" selected>Outubro</option>
+            <option value="11">Novembro</option>
+            <option value="12">Dezembro</option>
+        </select>
+        <label for="ano-selector">Ano:</label>
+        <select id="ano-selector" onchange="mudarMesReferencia()">
+            <option value="2024">2024</option>
+            <option value="2025" selected>2025</option>
+            <option value="2026">2026</option>
+        </select>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-button active" onclick="openTab(event, 'visualizacao')">Contas</button>
+        <button class="tab-button" onclick="openTab(event, 'cadastro')">Novo Lançamento</button>
+        <button class="tab-button" onclick="openTab(event, 'relatorios')">Resumo/Relatórios</button>
+        <button class="tab-button" onclick="openTab(event, 'backup')">Backup/Restauração</button>
+        <button class="tab-button" onclick="exportToCSV()">Exportar (CSV)</button>
+    </div>
+
+    <div id="visualizacao" class="tab-content active">
+        <h2 id="titulo-visualizacao">Contas de Outubro de 2025</h2>
+        
+        <div class="visualizacao-header">
+            <div class="filters-wrapper">
+                <div>
+                    <label for="filter-status">Filtrar por Status:</label>
+                    <select id="filter-status" onchange="aplicarFiltros()">
+                        <option value="todos">Todos os Status</option>
+                        <option value="A pagar">A pagar</option>
+                        <option value="Pago">Pago</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="filter-cat">Filtrar por Categoria:</label>
+                    <select id="filter-cat" onchange="aplicarFiltros()">
+                        <option value="todos">Todas as Categorias</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="filter-card">Filtrar por Cartão:</label>
+                    <select id="filter-card" onchange="aplicarFiltros()">
+                        <option value="todos">Todos os Cartões</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="summary-bar">
+                <div class="summary-item">Total Filtrado: <strong id="total-filtrado">R$ 0,00</strong></div>
+                <div class="summary-item">Pago Filtrado: <strong id="pago-filtrado">R$ 0,00</strong></div>
+                <div class="summary-item">A Pagar Filtrado: <strong id="apagar-filtrado">R$ 0,00</strong></div>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table id="tabela-contas">
+                <thead>
+                    <tr>
+                        <th>Status Rápido</th>
+                        <th>Descrição Despesa</th>
+                        <th>Categoria</th>
+                        <th>Parcelas</th>
+                        <th>Valor</th>
+                        <th>Cartão</th>
+                        <th>Status</th>
+                        <th>Ação</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="cadastro" class="tab-content">
+        <h2>Cadastrar Novo Lançamento</h2>
+        
+        <div class="card-form">
+            <form id="cadastro-form">
+                <div>
+                    <label for="descricao">Descrição Despesa:</label>
+                    <input type="text" id="descricao" required>
+                </div>
+                <div>
+                    <label for="valor">Valor:</label>
+                    <input type="number" id="valor" step="0.01" required>
+                </div>
+                
+                <div>
+                    <label for="categoria">Categoria:</label>
+                    <input type="text" id="categoria" required>
+                </div>
+                <div>
+                    <label for="cartao">Cartão:</label>
+                    <input type="text" id="cartao" placeholder="Ex: Cartão Nubank" required>
+                </div>
+                
+                <div>
+                    <label for="parcelas">Parcelas (Ex: 1/5 ou Fixo):</label>
+                    <input type="text" id="parcelas" placeholder="Ex: 1/5 ou Fixo" value="1/1">
+                </div>
+                <div>
+                    <label for="status">Status Inicial:</label>
+                    <select id="status" required>
+                        <option value="A pagar">A pagar</option>
+                        <option value="Pago">Pago</option>
+                    </select>
+                </div>
+                
+                <button type="submit">CADASTRAR NOVA CONTA</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="relatorios" class="tab-content">
+        <h2 id="titulo-relatorio">Resumo Mensal de Outubro de 2025</h2>
+        
+        <div class="report-section">
+            <div class="report-card total">
+                <h3>Total de Despesas</h3>
+                <p id="total-despesas">R$ 0,00</p>
+            </div>
+            <div class="report-card pago">
+                <h3>Total Pago</h3>
+                <p id="total-pago">R$ 0,00</p>
+            </div>
+            <div class="report-card apagar">
+                <h3>Total A Pagar</h3>
+                <p id="total-a-pagar">R$ 0,00</p>
+            </div>
+            <div class="report-card contas">
+                <h3>Contas Cadastradas</h3>
+                <p id="total-contas">0</p>
+            </div>
+        </div>
+        
+        <div class="detail-report">
+            <h3>Distribuição por Categoria</h3>
+            <ul id="resumo-por-categoria"></ul>
+        </div>
+
+        <div class="detail-report">
+            <h3>Distribuição por Cartão/Meio de Pagamento</h3>
+            <ul id="resumo-por-cartao"></ul>
+        </div>
+    </div>
+    
+    <div id="backup" class="tab-content">
+        <h2>Backup e Restauração de Dados (Multi-Mês)</h2>
+        <div class="backup-section">
+            <h3>1. Criar Backup (Exportar Dados)</h3>
+            <p>Isto irá exportar <strong>TODOS</strong> os dados de contas de todos os meses/anos salvos no seu navegador para um único arquivo JSON.</p>
+            <div class="backup-action">
+                <button class="backup-btn" onclick="createBackup()">
+                    <span style="font-size: 1.2em;">💾</span> CRIAR ARQUIVO DE BACKUP (JSON)
+                </button>
+            </div>
+            
+            <h3>2. Restaurar Backup (Importar Dados)</h3>
+            <p class="warning-restore">
+                <strong>ATENÇÃO:</strong> A restauração irá <strong>sobrescrever todos os dados existentes</strong> no seu gerenciador financeiro.
+                Certifique-se de que este é o arquivo de backup correto.
+            </p>
+            <form id="restore-form">
+                <div class="backup-action">
+                    <input type="file" id="backup-file" accept=".json" required>
+                    <button type="submit" class="restore-btn">
+                        <span style="font-size: 1.2em;">🔄</span> RESTAURAR DADOS
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="duplicarModal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="document.getElementById('duplicarModal').style.display='none'">&times;</span>
+        <h2>Duplicar Despesa para Outros Meses</h2>
+        <p id="modal-descricao-conta">Conta: </p>
+        <form id="form-duplicar-mes">
+            <label for="parcelas-avancar">Quantidade de meses para avançar (a partir do próximo):</label>
+            <input type="number" id="parcelas-avancar" value="1" min="1" required>
+            <button type="submit">Duplicar Lançamento(s)</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    // --- Variáveis Globais ---
+    let contas = [];
+    let nextId = 1;
+    let mesAtual = '10'; 
+    let anoAtual = '2025';
+    let linhaEmEdicao = null; 
+    let contaParaDuplicar = null; 
+    
+    const meses = [
+        "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+        "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+    ];
+
+    // Dados de exemplo (Outubro 2025)
+    const DADOS_OUTUBRO_2025 = [
+        { desc: "Anuidade caixa", cat: "Tarifas/Serviços", parc: "Fixo", valor: 10.50, cartao: "Cartão Caixa", status: "A pagar" },
+        { desc: "Apple (Caixa)", cat: "Assinaturas", parc: "Fixo", valor: 10.90, cartao: "Cartão Caixa", status: "A pagar" },
+        { desc: "Amazon (Caixa)", cat: "Compras Online", parc: "Fixo", valor: 59.80, cartao: "Cartão Caixa", status: "A pagar" },
+        { desc: "Netflix (Caixa)", cat: "Lazer/Entretenimento", parc: "Fixo", valor: 22.50, cartao: "Cartão Caixa", status: "Pago" },
+        { desc: "Academia (Caixa)", cat: "Saúde/Esportes", parc: "Fixo", valor: 59.90, cartao: "Cartão Caixa", status: "A pagar" },
+        { desc: "Terreno", cat: "Investimento/Imóvel", parc: "25/200", valor: 615.00, cartao: "Sem cartão", status: "A pagar" },
+        { desc: "Facilpa Ze neto", cat: "Serviços", parc: "6/6", valor: 71.15, cartao: "Cartão C6", status: "Pago" },
+        { desc: "Mariella", cat: "Vestuário", parc: "1/5", valor: 90.03, cartao: "Cartão Nubank", status: "A pagar" },
+        { desc: "Jorge", cat: "Vestuário", parc: "3/5", valor: 526.52, cartao: "Cartão Nubank", status: "A pagar" },
+        { desc: "Pneu (Nubank)", cat: "Veículos", parc: "3/8", valor: 60.00, cartao: "Cartão Nubank", status: "A pagar" },
+        { desc: "Guarda roupa", cat: "Móveis/Decoração", parc: "6/10", valor: 250.00, cartao: "Mercado Pago", status: "A pagar" },
+        { desc: "Colchão", cat: "Móveis/Decoração", parc: "2/6", valor: 928.00, cartao: "Cartão Inter", status: "A pagar" },
+        { desc: "Yuli (Inter)", cat: "Vestuário", parc: "3/5", valor: 276.20, cartao: "Cartão Inter", status: "Pago" },
+        { desc: "Seguro carro", cat: "Veículos", parc: "2/6", valor: 157.00, cartao: "Cartão Caixa", status: "A pagar" },
+        { desc: "Panela", cat: "Móveis/Decoração", parc: "1/10", valor: 36.50, cartao: "Mercado Pago", status: "A pagar" },
+        { desc: "Pix verdura", cat: "Alimentação/Mercado", parc: "", valor: 51.00, cartao: "Sem cartão", status: "Pago" },
+        { desc: "Parcelamento c6", cat: "Dívidas/Empréstimos", parc: "4/12", valor: 947.71, cartao: "Cartão C6", status: "A pagar" },
+        { desc: "Gympass (Andre)", cat: "Saúde/Esportes", parc: "", valor: 89.90, cartao: "Cartão C6", status: "A pagar" },
+        { desc: "Mes passado", cat: "Dívidas/Empréstimos", parc: "", valor: 2778.00, cartao: "Sem cartão", status: "A pagar" },
+    ];
+    
+    // --- Funções de Utilitário ---
+    function getStorageKey(mes = mesAtual, ano = anoAtual) { return `contas_${mes}_${ano}`; }
+    function getMonthName(monthNumber) {
+        const index = parseInt(monthNumber) - 1;
+        return meses[index];
+    }
+    function formatarMoeda(valor) {
+        return parseFloat(valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+    function getNextId() {
+        let maxId = 0;
+        contas.forEach(conta => {
+            if (conta.id > maxId) maxId = conta.id;
+        });
+        nextId = maxId + 1;
+        return nextId;
+    }
+
+    // --- Funções Principais (Load/Save/Render) ---
+
+    function carregarContas() {
+        fecharEdicao(); 
+        const STORAGE_KEY = getStorageKey();
+        const storedContas = localStorage.getItem(STORAGE_KEY);
+        const mes = parseInt(mesAtual);
+
+        if (storedContas) {
+            contas = JSON.parse(storedContas);
+        } else if (mes === 10 && anoAtual === '2025') {
+            contas = DADOS_OUTUBRO_2025.map((item, index) => ({...item, id: index + 1}));
+            salvarContas(contas);
+        } else {
+            contas = [];
+        }
+        
+        getNextId();
+        popularFiltros(); 
+        aplicarFiltros(); 
+        atualizarRelatorios(contas);
+        atualizarTitulos();
+    }
+
+    function salvarContas(contasArray) {
+        const STORAGE_KEY = getStorageKey();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(contasArray));
+    }
+    
+    function popularFiltros() {
+        const cats = [...new Set(contas.map(c => c.cat))].sort();
+        const cards = [...new Set(contas.map(c => c.cartao))].sort();
+        
+        const filterCat = document.getElementById('filter-cat');
+        const filterCard = document.getElementById('filter-card');
+
+        const currentCat = filterCat ? filterCat.value : 'todos';
+        const currentCard = filterCard ? filterCard.value : 'todos';
+        
+        if (filterCat) {
+            filterCat.innerHTML = '<option value="todos">Todas as Categorias</option>';
+            cats.forEach(cat => { filterCat.innerHTML += `<option value="${cat}">${cat}</option>`; });
+            filterCat.value = currentCat;
+        }
+
+        if (filterCard) {
+            filterCard.innerHTML = '<option value="todos">Todos os Cartões</option>';
+            cards.forEach(card => { filterCard.innerHTML += `<option value="${card}">${card}</option>`; });
+            filterCard.value = currentCard;
+        }
+    }
+
+    function aplicarFiltros() {
+        const statusFilter = document.getElementById('filter-status').value;
+        const catFilter = document.getElementById('filter-cat').value;
+        const cardFilter = document.getElementById('filter-card').value;
+
+        const contasFiltradas = contas.filter(conta => {
+            const statusMatch = statusFilter === 'todos' || conta.status === statusFilter;
+            const catMatch = catFilter === 'todos' || conta.cat === catFilter;
+            const cardMatch = cardFilter === 'todos' || conta.cartao === cardFilter;
+            return statusMatch && catMatch && cardMatch;
+        });
+
+        renderizarTabela(contasFiltradas);
+        atualizarTotalizadorFiltrado(contasFiltradas);
+    }
+
+    function atualizarTotalizadorFiltrado(contasFiltradas) {
+        let total = 0;
+        let pago = 0;
+        let apagar = 0;
+
+        contasFiltradas.forEach(c => {
+            total += c.valor;
+            if (c.status === 'Pago') {
+                pago += c.valor;
+            } else {
+                apagar += c.valor;
+            }
+        });
+
+        document.getElementById('total-filtrado').textContent = formatarMoeda(total);
+        document.getElementById('pago-filtrado').textContent = formatarMoeda(pago);
+        document.getElementById('apagar-filtrado').textContent = formatarMoeda(apagar);
+    }
+
+
+    function renderizarTabela(contasArray) {
+        const tbody = document.querySelector('#tabela-contas tbody');
+        tbody.innerHTML = '';
+        
+        contasArray.forEach(conta => {
+            const row = tbody.insertRow();
+            row.setAttribute('data-id', conta.id);
+            
+            const quickStatusCell = row.insertCell();
+            quickStatusCell.classList.add('quick-status-cell');
+            const statusBtn = document.createElement('button');
+            const newStatus = conta.status === 'Pago' ? 'A pagar' : 'Pago';
+            statusBtn.textContent = conta.status === 'Pago' ? 'Estornar' : 'Pagar';
+            statusBtn.classList.add('quick-status-btn', conta.status === 'Pago' ? 'apagar' : 'pago');
+            statusBtn.onclick = (e) => { e.stopPropagation(); toggleStatus(conta.id, newStatus); };
+            quickStatusCell.appendChild(statusBtn);
+
+            row.insertCell().textContent = conta.desc;
+            row.insertCell().textContent = conta.cat;
+            row.insertCell().textContent = conta.parc;
+            row.insertCell().textContent = formatarMoeda(conta.valor);
+            row.insertCell().textContent = conta.cartao;
+            
+            const statusCell = row.insertCell();
+            statusCell.textContent = conta.status;
+            statusCell.classList.add(conta.status === 'A pagar' ? 'status-apagar' : 'status-pago');
+
+            const actionCell = row.insertCell();
+            actionCell.classList.add('action-cell');
+            
+            const editBtn = document.createElement('button');
+            editBtn.textContent = 'Editar';
+            editBtn.classList.add('edit-btn');
+            editBtn.onclick = (e) => { e.stopPropagation(); iniciarEdicao(e, conta.id); };
+
+            const duplicateBtn = document.createElement('button');
+            duplicateBtn.textContent = 'Duplicar';
+            duplicateBtn.classList.add('duplicate-btn');
+            duplicateBtn.onclick = (e) => { e.stopPropagation(); duplicarConta(conta.id); };
+
+            const recorrenciaBtn = document.createElement('button');
+            recorrenciaBtn.textContent = 'Duplicar Mês';
+            recorrenciaBtn.classList.add('recorrencia-btn');
+            recorrenciaBtn.onclick = (e) => { e.stopPropagation(); abrirModalRecorrencia(conta.id); };
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = 'Excluir';
+            deleteBtn.classList.add('delete-btn');
+            deleteBtn.onclick = (e) => { e.stopPropagation(); excluirConta(conta.id); };
+            
+            actionCell.appendChild(editBtn);
+            actionCell.appendChild(duplicateBtn);
+            actionCell.appendChild(recorrenciaBtn);
+            actionCell.appendChild(deleteBtn);
+        });
+    }
+
+    function mudarMesReferencia() {
+        mesAtual = document.getElementById('mes-selector').value;
+        anoAtual = document.getElementById('ano-selector').value;
+        carregarContas();
+        openTab(null, 'visualizacao');
+    }
+    
+    function atualizarTitulos() {
+        const nomeMes = getMonthName(mesAtual);
+        document.getElementById('titulo-visualizacao').textContent = `Contas de ${nomeMes} de ${anoAtual}`;
+        document.getElementById('titulo-relatorio').textContent = `Resumo Mensal de ${nomeMes} de ${anoAtual}`;
+    }
+    
+    function toggleStatus(id, newStatus) {
+        const contaIndex = contas.findIndex(c => c.id === id);
+        if (contaIndex !== -1) {
+            contas[contaIndex].status = newStatus;
+            salvarContas(contas);
+            aplicarFiltros(); 
+            atualizarRelatorios(contas);
+        }
+    }
+
+    function duplicarConta(id) {
+        const contaOriginal = contas.find(c => c.id === id);
+        if (!contaOriginal) return;
+
+        const novaConta = { ...contaOriginal };
+        novaConta.id = getNextId();
+        novaConta.desc = `(Cópia) ${novaConta.desc}`; 
+        
+        contas.push(novaConta);
+        salvarContas(contas);
+        aplicarFiltros();
+        atualizarRelatorios(contas);
+        alert(`Conta duplicada no mês atual como: ${novaConta.desc}`);
+    }
+
+    function abrirModalRecorrencia(id) {
+        contaParaDuplicar = contas.find(c => c.id === id);
+        if (!contaParaDuplicar) return;
+
+        document.getElementById('modal-descricao-conta').textContent = `Conta: ${contaParaDuplicar.desc} (Valor: ${formatarMoeda(contaParaDuplicar.valor)})`;
+        document.getElementById('duplicarModal').style.display = 'block';
+    }
+
+    document.getElementById('form-duplicar-mes').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const numParcelas = parseInt(document.getElementById('parcelas-avancar').value);
+        
+        if (!contaParaDuplicar || numParcelas < 1) return;
+
+        let baseParcNum = 0;
+        let baseParcTotal = 0;
+        
+        const match = contaParaDuplicar.parc.match(/(\d+)\/(\d+)/);
+        if (match) {
+            baseParcNum = parseInt(match[1]);
+            baseParcTotal = parseInt(match[2]);
+        } else {
+             baseParcNum = 0;
+             baseParcTotal = 0;
+        }
+        
+        const contasDestino = [];
+        let [currentMonthNum, currentYearNum] = [parseInt(mesAtual), parseInt(anoAtual)];
+        
+        for (let i = 0; i < numParcelas; i++) {
+            let targetMonthNum = currentMonthNum + i + 1;
+            let targetYearNum = currentYearNum + Math.floor((targetMonthNum - 1) / 12);
+            targetMonthNum = (targetMonthNum - 1) % 12 + 1;
+
+            const targetMonthStr = String(targetMonthNum).padStart(2, '0');
+            const targetYearStr = String(targetYearNum);
+
+            if (i >= 0) { 
+                const novaConta = { ...contaParaDuplicar };
+                novaConta.id = null; 
+                novaConta.status = 'A pagar'; 
+                
+                let novaParc = contaParaDuplicar.parc;
+                let novaDesc = novaConta.desc;
+                
+                if (baseParcNum > 0 && baseParcTotal > 0) {
+                    const nextParcNum = baseParcNum + i + 1; 
+                    if (nextParcNum <= baseParcTotal) {
+                        novaParc = `${nextParcNum}/${baseParcTotal}`;
+                    } else { 
+                         novaParc = `Fixo (Encerrado em ${baseParcTotal}/${baseParcTotal})`;
+                         novaDesc = `(Encerrada) ${novaConta.desc}`; 
+                    }
+                }
+                novaConta.parc = novaParc;
+                novaConta.desc = novaDesc;
+
+                salvarNovaContaRecorrente(novaConta, targetMonthStr, targetYearStr);
+
+                contasDestino.push(`${getMonthName(targetMonthStr)}/${targetYearStr} (${novaParc})`);
+            }
+        }
+        
+        document.getElementById('duplicarModal').style.display = 'none';
+        alert(`Despesa duplicada com sucesso para ${numParcelas} mês(es) seguintes: \n${contasDestino.join('\n')}`);
+    });
+
+    function salvarNovaContaRecorrente(novaConta, mesDestino, anoDestino) {
+        const storageKeyDestino = getStorageKey(mesDestino, anoDestino);
+        let contasDestino = JSON.parse(localStorage.getItem(storageKeyDestino)) || [];
+        
+        let maxIdDestino = 0;
+        contasDestino.forEach(c => { if (c.id > maxIdDestino) maxIdDestino = c.id; });
+        novaConta.id = maxIdDestino + 1;
+
+        contasDestino.push(novaConta);
+        localStorage.setItem(storageKeyDestino, JSON.stringify(contasDestino));
+    }
+
+    function fecharEdicao() {
+        if (linhaEmEdicao) {
+            renderizarTabela(contas); 
+            linhaEmEdicao = null;
+            aplicarFiltros(); 
+        }
+    }
+
+    function iniciarEdicao(event, id) {
+        fecharEdicao(); 
+
+        const row = document.querySelector(`tr[data-id="${id}"]`); 
+        linhaEmEdicao = row;
+        linhaEmEdicao.classList.add('editing');
+
+        const conta = contas.find(c => c.id === id);
+        if (!conta) return;
+
+        const cells = row.cells;
+        
+        const camposEditaveis = [
+            { index: 1, key: 'desc', type: 'text' },
+            { index: 2, key: 'cat', type: 'text' },
+            { index: 3, key: 'parc', type: 'text' },
+            { index: 4, key: 'valor', type: 'number' },
+            { index: 5, key: 'cartao', type: 'text' },
+            { index: 6, key: 'status', type: 'select', options: ['A pagar', 'Pago'] }
+        ];
+
+        camposEditaveis.forEach(({ index, key, type, options }) => {
+            const cell = cells[index];
+
+            if (type === 'select') {
+                const select = document.createElement('select');
+                options.forEach(optionText => {
+                    const option = document.createElement('option');
+                    option.value = optionText;
+                    option.textContent = optionText;
+                    if (optionText === conta.status) {
+                        option.selected = true;
+                    }
+                    select.appendChild(option);
+                });
+                cell.innerHTML = '';
+                cell.appendChild(select);
+            } else {
+                const input = document.createElement('input');
+                input.type = type;
+                input.value = key === 'valor' ? parseFloat(conta.valor).toFixed(2) : conta[key];
+                
+                if (key === 'valor') {
+                    input.step = "0.01";
+                }
+
+                cell.innerHTML = '';
+                cell.appendChild(input);
+            }
+        });
+
+        cells[0].innerHTML = ''; 
+        const actionCell = cells[7];
+        actionCell.innerHTML = ''; 
+
+        const saveBtn = document.createElement('button');
+        saveBtn.textContent = 'Salvar';
+        saveBtn.classList.add('save-btn');
+        saveBtn.onclick = (e) => { e.stopPropagation(); salvarEdicao(id, cells); };
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.textContent = 'Cancelar';
+        cancelBtn.classList.add('cancel-btn');
+        cancelBtn.onclick = (e) => { e.stopPropagation(); fecharEdicao(); };
+
+        actionCell.appendChild(saveBtn);
+        actionCell.appendChild(cancelBtn);
+    }
+
+    function salvarEdicao(id, cells) {
+        const contaIndex = contas.findIndex(c => c.id === id);
+        if (contaIndex === -1) return;
+
+        const novaConta = { ...contas[contaIndex] };
+
+        novaConta.desc = cells[1].querySelector('input').value;
+        novaConta.cat = cells[2].querySelector('input').value;
+        novaConta.parc = cells[3].querySelector('input').value;
+        novaConta.valor = parseFloat(cells[4].querySelector('input').value);
+        novaConta.cartao = cells[5].querySelector('input').value;
+        novaConta.status = cells[6].querySelector('select').value;
+
+        if (isNaN(novaConta.valor) || novaConta.valor <= 0) {
+            alert('Valor inválido. Insira um número maior que zero.');
+            return;
+        }
+
+        contas[contaIndex] = novaConta;
+        salvarContas(contas);
+        fecharEdicao(); 
+        aplicarFiltros(); 
+        atualizarRelatorios(contas);
+        popularFiltros(); 
+    }
+    
+    function excluirConta(id) {
+        if (confirm('Tem certeza que deseja excluir esta conta?')) {
+            contas = contas.filter(conta => conta.id !== id);
+            salvarContas(contas);
+            aplicarFiltros();
+            atualizarRelatorios(contas);
+            popularFiltros();
+        }
+    }
+
+    document.getElementById('cadastro-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const novaConta = {
+            id: getNextId(),
+            desc: document.getElementById('descricao').value,
+            cat: document.getElementById('categoria').value,
+            parc: document.getElementById('parcelas').value,
+            valor: parseFloat(document.getElementById('valor').value),
+            cartao: document.getElementById('cartao').value,
+            status: document.getElementById('status').value
+        };
+
+        contas.push(novaConta);
+        salvarContas(contas);
+        
+        popularFiltros(); 
+        aplicarFiltros();
+        atualizarRelatorios(contas);
+        openTab(e, 'visualizacao');
+
+        e.target.reset();
+        document.getElementById('parcelas').value = '1/1';
+    });
+
+
+    function atualizarRelatorios(contasArray) {
+        let totalDespesas = 0;
+        let totalPago = 0;
+        let totalAPagar = 0;
+        const resumoPorCartao = {};
+        const resumoPorCategoria = {};
+
+        contasArray.forEach(conta => {
+            totalDespesas += conta.valor;
+
+            if (conta.status === 'Pago') {
+                totalPago += conta.valor;
+            } else {
+                totalAPagar += conta.valor;
+            }
+
+            if (!resumoPorCartao[conta.cartao]) { resumoPorCartao[conta.cartao] = 0; }
+            resumoPorCartao[conta.cartao] += conta.valor;
+
+            if (!resumoPorCategoria[conta.cat]) { resumoPorCategoria[conta.cat] = 0; }
+            resumoPorCategoria[conta.cat] += conta.valor;
+        });
+
+        document.getElementById('total-despesas').textContent = formatarMoeda(totalDespesas);
+        document.getElementById('total-pago').textContent = formatarMoeda(totalPago);
+        document.getElementById('total-a-pagar').textContent = formatarMoeda(totalAPagar);
+        document.getElementById('total-contas').textContent = contasArray.length;
+
+        const renderResumo = (ulId, resumo, totalGeral) => {
+            const ul = document.getElementById(ulId);
+            ul.innerHTML = '';
+            const ordenado = Object.keys(resumo).sort((a, b) => resumo[b] - resumo[a]);
+            const maiorValor = ordenado.length > 0 ? resumo[ordenado[0]] : 0;
+            
+            ordenado.forEach(key => {
+                const valor = resumo[key];
+                const percentual = maiorValor > 0 ? (valor / maiorValor) * 100 : 0;
+                
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <span class="${ulId.includes('categoria') ? 'category-name' : 'card-name'}">${key}</span>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${percentual.toFixed(2)}%;"></div>
+                    </div>
+                    <span class="${ulId.includes('categoria') ? 'category-value' : 'card-value'}">${formatarMoeda(valor)}</span>
+                `;
+                ul.appendChild(li);
+            });
+        };
+        
+        renderResumo('resumo-por-categoria', resumoPorCategoria, totalDespesas);
+        renderResumo('resumo-por-cartao', resumoPorCartao, totalDespesas);
+    }
+    
+    
+    // --- FUNÇÕES DE BACKUP E RESTAURAÇÃO ---
+    
+    function createBackup() {
+        const backupData = {};
+        let totalItems = 0;
+        
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key.startsWith('contas_')) {
+                backupData[key] = localStorage.getItem(key);
+                totalItems++;
+            }
+        }
+        
+        if (totalItems === 0) {
+            alert('Nenhuma conta foi encontrada para backup (As contas são salvas em seu navegador).');
+            return;
+        }
+
+        const jsonContent = JSON.stringify(backupData, null, 2);
+        const blob = new Blob([jsonContent], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, ''); 
+        
+        link.setAttribute("href", url);
+        link.setAttribute("download", `Contas_Backup_${timestamp}.json`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        alert(`Backup de ${totalItems} meses criado com sucesso! Arquivo: Contas_Backup_${timestamp}.json`);
+    }
+
+    document.getElementById('restore-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const fileInput = document.getElementById('backup-file');
+        const file = fileInput.files[0];
+        
+        if (!file) {
+            alert("Por favor, selecione um arquivo de backup (.json).");
+            return;
+        }
+        
+        if (!confirm("Tem certeza que deseja RESTAURAR este backup? Isso SOBRESCREVERÁ todos os seus dados atuais.")) {
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const jsonContent = e.target.result;
+                const backupData = JSON.parse(jsonContent);
+                restoreBackup(backupData);
+            } catch (error) {
+                console.error('Erro ao ler ou parsear o arquivo JSON:', error);
+                alert('Erro ao processar o arquivo. Verifique se é um arquivo JSON de backup válido.');
+            }
+        };
+        reader.readAsText(file, 'utf-8');
+    });
+
+    function restoreBackup(backupData) {
+        let itemsRestored = 0;
+        
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key.startsWith('contas_')) {
+                keysToRemove.push(key);
+            }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+        
+        for (const key in backupData) {
+            if (key.startsWith('contas_')) {
+                localStorage.setItem(key, backupData[key]);
+                itemsRestored++;
+            }
+        }
+
+        if (itemsRestored > 0) {
+            alert(`Restauração concluída. ${itemsRestored} meses de dados foram restaurados.`);
+            carregarContas(); 
+            openTab(null, 'visualizacao'); 
+        } else {
+            alert("O arquivo de backup não contém dados de contas válidos para restauração.");
+        }
+    }
+
+
+    // --- Funções Auxiliares (Aba, CSV, Inicialização) ---
+
+    function openTab(evt, tabName) {
+        fecharEdicao();
+
+        const tabContents = document.getElementsByClassName("tab-content");
+        for (let i = 0; i < tabContents.length; i++) {
+            tabContents[i].style.display = "none";
+            tabContents[i].classList.remove("active");
+        }
+
+        const tabButtons = document.getElementsByClassName("tab-button");
+        for (let i = 0; i < tabButtons.length; i++) {
+            tabButtons[i].classList.remove("active");
+        }
+
+        document.getElementById(tabName).style.display = "block";
+        document.getElementById(tabName).classList.add("active");
+        
+        const targetButton = evt && evt.currentTarget ? evt.currentTarget : document.querySelector(`.tabs button[onclick*='${tabName}']`);
+        if (targetButton) { targetButton.classList.add("active"); }
+
+        if (tabName === 'visualizacao') {
+            aplicarFiltros(); 
+        } else if (tabName === 'relatorios') {
+            atualizarRelatorios(contas);
+        }
+    }
+    
+    function convertToCSV(data) {
+        const header = ["ID", "Descricao", "Categoria", "Parcelas", "Valor", "Cartao", "Status"];
+        const rows = data.map(conta => [
+            conta.id,
+            conta.desc.replace(/;/g, '').replace(/,/g, ''),
+            conta.cat,
+            conta.parc,
+            conta.valor.toFixed(2).replace('.', ','), 
+            conta.cartao,
+            conta.status
+        ]);
+        
+        let csvContent = header.join(";") + "\n";
+        rows.forEach(row => {
+            csvContent += row.join(";") + "\n";
+        });
+        return csvContent;
+    }
+
+    function exportToCSV() {
+        const csv = convertToCSV(contas);
+        const nomeMes = getMonthName(mesAtual);
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `contas_${nomeMes}_${anoAtual}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    window.onload = function() {
+        const today = new Date();
+        const currentMonth = String(today.getMonth() + 1).padStart(2, '0');
+        const currentYear = String(today.getFullYear());
+
+        const mesSelector = document.getElementById('mes-selector');
+        const anoSelector = document.getElementById('ano-selector');
+
+        for (let y = today.getFullYear() - 2; y <= today.getFullYear() + 5; y++) {
+             const option = document.createElement('option');
+             option.value = String(y);
+             option.textContent = String(y);
+             anoSelector.appendChild(option);
+        }
+
+        if (mesSelector) mesSelector.value = currentMonth;
+        if (anoSelector) anoSelector.value = currentYear;
+
+        mesAtual = currentMonth;
+        anoAtual = currentYear;
+
+        carregarContas();
+        
+        openTab(null, 'visualizacao'); 
+    };
+</script>
+
+</body>
+</html>

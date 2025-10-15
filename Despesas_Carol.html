@@ -673,28 +673,40 @@ const app = initializeApp(firebaseConfig);
 
     // --- Funções Principais (Load/Save/Render) ---
 
-    function carregarContas() {
+   function carregarContas() {
     fecharEdicao(); 
     const PATH = getStorageKey();
-    // Usa a referência global 'db' e o caminho do mês/ano atual
+    // 1. Cria a referência para o nó no Firebase
     const dbRef = ref(window.db, PATH); 
     const mes = parseInt(mesAtual);
 
-    // onValue: Escuta em tempo real no Firebase. Executa sempre que os dados mudam.
+    // 2. onValue: Escuta o Firebase. Quando dados chegam ou mudam, ele atualiza a tela.
     onValue(dbRef, (snapshot) => {
-        const data = snapshot.val(); // Obtém os dados do Firebase
+        const data = snapshot.val(); 
         
         if (data) {
             contas = data; // Dados do Firebase
         } else if (mes === 10 && anoAtual === '2025') {
-            // Se o nó estiver vazio e for Outubro/2025, carrega os dados de exemplo
+            // Lógica para carregar os dados de exemplo, se necessário
             contas = DADOS_OUTUBRO_2025.map((item, index) => ({...item, id: index + 1}));
-            // Salva os dados de exemplo no Firebase (para que eles apareçam na próxima vez)
-            salvarContas(contas); 
+            salvarContas(contas); // Salva o exemplo no Firebase
         } else {
-            contas = []; // Mês sem contas
+            contas = []; // Mês vazio
         }
         
+        // Funções de renderização (inalteradas)
+        getNextId();
+        popularFiltros(); 
+        aplicarFiltros(); 
+        atualizarRelatorios(contas);
+        atualizarTitulos();
+        
+    }, (error) => {
+        // Trata erros de conexão ou permissão
+        console.error("Erro ao carregar dados do Firebase:", error);
+        alert("Não foi possível carregar as contas. Verifique as regras de segurança do Firebase.");
+    });
+}
         // Funções de renderização
         getNextId();
         popularFiltros(); 
@@ -709,11 +721,11 @@ const app = initializeApp(firebaseConfig);
     });
 }
 
-    function salvarContas(contasArray) {
+   function salvarContas(contasArray) {
     const PATH = getStorageKey();
     const dbRef = ref(window.db, PATH); 
 
-    // SET: Envia o array completo para o nó do Firebase, sobrescrevendo o que existia.
+    // SET: Envia o array completo para o nó do Firebase, substituindo o que existia.
     set(dbRef, contasArray)
         .then(() => {
             console.log("Dados salvos no Firebase com sucesso no nó: " + PATH);
@@ -946,24 +958,21 @@ const app = initializeApp(firebaseConfig);
         alert(`Despesa duplicada com sucesso para ${numParcelas} mês(es) seguintes: \n${contasDestino.join('\n')}`);
     });
 
-    function salvarNovaContaRecorrente(novaConta, mesDestino, anoDestino) {
+   function salvarNovaContaRecorrente(novaConta, mesDestino, anoDestino) {
     const PATH_DESTINO = getStorageKey(mesDestino, anoDestino);
     const dbRefDestino = ref(window.db, PATH_DESTINO);
     
-    // 1. Usamos GET para ler o estado atual do mês de destino (operação assíncrona)
+    // 1. GET: Lê os dados do mês de destino UMA VEZ.
     get(dbRefDestino).then((snapshot) => {
-        // Pega o array do Firebase, ou um array vazio se o nó não existir
         let contasDestino = snapshot.val() || [];
         
-        // 2. Lógica de ID 
+        // Lógica de ID e adição da nova conta
         let maxIdDestino = 0;
         contasDestino.forEach(c => { if (c.id > maxIdDestino) maxIdDestino = c.id; });
         novaConta.id = maxIdDestino + 1; 
-
-        // 3. Adiciona a nova conta e salva o array completo
         contasDestino.push(novaConta);
 
-        // SET: Salva a nova lista completa no Firebase
+        // 2. SET: Salva a nova lista completa no Firebase
         set(dbRefDestino, contasDestino)
             .then(() => {
                  console.log(`Conta recorrente salva com sucesso em ${mesDestino}/${anoDestino}`);
@@ -978,7 +987,6 @@ const app = initializeApp(firebaseConfig);
          alert("Erro de leitura do mês de destino no Firebase.");
     });
 }
-
     function fecharEdicao() {
         if (linhaEmEdicao) {
             renderizarTabela(contas); 
@@ -1175,95 +1183,7 @@ const app = initializeApp(firebaseConfig);
     
     // --- FUNÇÕES DE BACKUP E RESTAURAÇÃO ---
     
-    function createBackup() {
-        const backupData = {};
-        let totalItems = 0;
-        
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key.startsWith('contas_')) {
-                backupData[key] = localStorage.getItem(key);
-                totalItems++;
-            }
-        }
-        
-        if (totalItems === 0) {
-            alert('Nenhuma conta foi encontrada para backup (As contas são salvas em seu navegador).');
-            return;
-        }
-
-        const jsonContent = JSON.stringify(backupData, null, 2);
-        const blob = new Blob([jsonContent], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, ''); 
-        
-        link.setAttribute("href", url);
-        link.setAttribute("download", `Contas_Backup_${timestamp}.json`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        alert(`Backup de ${totalItems} meses criado com sucesso! Arquivo: Contas_Backup_${timestamp}.json`);
-    }
-
-    document.getElementById('restore-form').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const fileInput = document.getElementById('backup-file');
-        const file = fileInput.files[0];
-        
-        if (!file) {
-            alert("Por favor, selecione um arquivo de backup (.json).");
-            return;
-        }
-        
-        if (!confirm("Tem certeza que deseja RESTAURAR este backup? Isso SOBRESCREVERÁ todos os seus dados atuais.")) {
-            return;
-        }
-
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            try {
-                const jsonContent = e.target.result;
-                const backupData = JSON.parse(jsonContent);
-                restoreBackup(backupData);
-            } catch (error) {
-                console.error('Erro ao ler ou parsear o arquivo JSON:', error);
-                alert('Erro ao processar o arquivo. Verifique se é um arquivo JSON de backup válido.');
-            }
-        };
-        reader.readAsText(file, 'utf-8');
-    });
-
-    function restoreBackup(backupData) {
-        let itemsRestored = 0;
-        
-        const keysToRemove = [];
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key.startsWith('contas_')) {
-                keysToRemove.push(key);
-            }
-        }
-        keysToRemove.forEach(key => localStorage.removeItem(key));
-        
-        for (const key in backupData) {
-            if (key.startsWith('contas_')) {
-                localStorage.setItem(key, backupData[key]);
-                itemsRestored++;
-            }
-        }
-
-        if (itemsRestored > 0) {
-            alert(`Restauração concluída. ${itemsRestored} meses de dados foram restaurados.`);
-            carregarContas(); 
-            openTab(null, 'visualizacao'); 
-        } else {
-            alert("O arquivo de backup não contém dados de contas válidos para restauração.");
-        }
-    }
-
-
+  
     // --- Funções Auxiliares (Aba, CSV, Inicialização) ---
 
     function openTab(evt, tabName) {
@@ -1354,3 +1274,4 @@ const app = initializeApp(firebaseConfig);
 
 </body>
 </html>
+

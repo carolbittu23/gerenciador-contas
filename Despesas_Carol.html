@@ -617,6 +617,29 @@ const app = initializeApp(firebaseConfig);
 </div>
 
 <script>
+    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  // Substitua pelos seus dados do painel Supabase
+  const SUPABASE_URL = "https://SEU-PROJETO.supabase.co";
+  const SUPABASE_ANON_KEY = "SUA-CHAVE-ANON";
+  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // Exemplo: inserir dados de um formulário
+  async function enviarMensagem() {
+    const nome = document.getElementById("nome").value;
+    const email = document.getElementById("email").value;
+    const mensagem = document.getElementById("mensagem").value;
+
+    const { data, error } = await supabase
+      .from("mensagens")
+      .insert([{ nome, email, mensagem }]);
+
+    if (error) {
+      alert("Erro ao enviar: " + error.message);
+    } else {
+      alert("Mensagem enviada com sucesso!");
+    }
+  }
     // --- Variáveis Globais ---
     let contas = [];
     let nextId = 1;
@@ -1274,4 +1297,5 @@ const app = initializeApp(firebaseConfig);
 
 </body>
 </html>
+
 

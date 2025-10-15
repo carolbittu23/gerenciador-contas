@@ -392,6 +392,28 @@
     </style>
 </head>
 <body>
+<script type="module">
+ // Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyCQah3Qw1JKSqBk6fwTbaIGzMTxthQdn_o",
+  authDomain: "despesas-205a5.firebaseapp.com",
+  databaseURL: "https://despesas-205a5-default-rtdb.firebaseio.com",
+  projectId: "despesas-205a5",
+  storageBucket: "despesas-205a5.firebasestorage.app",
+  messagingSenderId: "555049977059",
+  appId: "1:555049977059:web:0f35aa0115fd033d6f71d6"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+
+</script>
+
 <div class="container">
     <h1>Gerenciador Financeiro Pessoal</h1>
 
@@ -594,33 +616,7 @@
     </div>
 </div>
 
-<script type="module">
-    // ********************************************************
-    // INÍCIO: INTEGRAÇÃO FIREBASE (v9+)
-    // ********************************************************
-    
-    // 1. Importações do Firebase v9+ para App e Realtime Database
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-    import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
-
-    // 2. Configuração do Firebase (copiada do seu código anterior)
-    const firebaseConfig = {
-        apiKey: "AIzaSyAJ0uZmhiTa_0QDhA9uunjUxYXazbckJ_M",
-        authDomain: "gerenciador-contas-d0095.firebaseapp.com",
-        projectId: "gerenciador-contas-d0095",
-        storageBucket: "gerenciador-contas-d0095.firebasestorage.app",
-        messagingSenderId: "199456218371",
-        appId: "1:199456218371:web:5283d17239bf19d5da1d36"
-    };
-
-    // 3. Inicializa o Firebase e o Banco de Dados
-    const app = initializeApp(firebaseConfig);
-    const database = getDatabase(app); 
-    
-    // ********************************************************
-    // FIM: INTEGRAÇÃO FIREBASE
-    // ********************************************************
-
+<script>
     // --- Variáveis Globais ---
     let contas = [];
     let nextId = 1;
@@ -658,12 +654,7 @@
     ];
     
     // --- Funções de Utilitário ---
-    // ALTERADO: A chave de armazenamento é agora um caminho do Firebase (contas/mes_ano)
-    function getStorageKey(mes = mesAtual, ano = anoAtual) { return `contas/${mes}_${ano}`; }
-    
-    // NOVO: Função para obter a referência do banco de dados (Realtime Database Ref)
-    function getDBRef(mes = mesAtual, ano = anoAtual) { return ref(database, getStorageKey(mes, ano)); }
-    
+    function getStorageKey(mes = mesAtual, ano = anoAtual) { return `contas_${mes}_${ano}`; }
     function getMonthName(monthNumber) {
         const index = parseInt(monthNumber) - 1;
         return meses[index];
@@ -682,67 +673,56 @@
 
     // --- Funções Principais (Load/Save/Render) ---
 
-    // ALTERADO: carregarContas AGORA É ASYNC e usa Firebase (get)
-    async function carregarContas() {
-        fecharEdicao(); 
-        const dbRef = getDBRef();
-        const mes = parseInt(mesAtual);
+    function carregarContas() {
+    fecharEdicao(); 
+    const PATH = getStorageKey();
+    // Usa a referência global 'db' e o caminho do mês/ano atual
+    const dbRef = ref(window.db, PATH); 
+    const mes = parseInt(mesAtual);
 
-        try {
-            // Tentar carregar do Firebase uma única vez
-            const snapshot = await get(dbRef);
-            const storedContas = snapshot.val(); // Retorna o array de contas ou null
-
-            if (storedContas) {
-                contas = storedContas; 
-            } else if (mes === 10 && anoAtual === '2025') {
-                // Se não há dados no Firebase, usa os dados de exemplo
-                contas = DADOS_OUTUBRO_2025.map((item, index) => ({...item, id: index + 1}));
-                // Salva os dados de exemplo no Firebase
-                await salvarContas(contas); 
-            } else {
-                contas = []; // Lista vazia
-            }
-            
-            // --- Lógica de inicialização MOVIDA para dentro do bloco try/catch ---
-            getNextId();
-            popularFiltros(); 
-            aplicarFiltros(); 
-            atualizarRelatorios(contas);
-            atualizarTitulos();
-            
-            // Abre a aba "visualizacao"
-            openTab(null, 'visualizacao'); 
-
-        } catch(error) {
-            console.error("Erro ao carregar dados do Firebase:", error);
-            alert("Não foi possível conectar ao banco de dados. Verifique a internet e as chaves de configuração. (Erro: " + error.message + ")");
-            
-            // Em caso de falha grave, carrega vazio para não travar
-            contas = [];
-            getNextId();
-            popularFiltros(); 
-            aplicarFiltros(); 
-            atualizarRelatorios(contas);
-            atualizarTitulos();
-            openTab(null, 'visualizacao'); 
-        }
-    }
-
-    // ALTERADO: salvarContas AGORA usa Firebase (set)
-    function salvarContas(contasArray) {
-        const dbRef = getDBRef();
+    // onValue: Escuta em tempo real no Firebase. Executa sempre que os dados mudam.
+    onValue(dbRef, (snapshot) => {
+        const data = snapshot.val(); // Obtém os dados do Firebase
         
-        // O .set() sobrescreve o nó no caminho, salvando todo o array
-        return set(dbRef, contasArray)
-            .then(() => {
-                console.log(`Dados para ${getStorageKey()} salvos com sucesso no Firebase.`);
-            })
-            .catch((error) => {
-                console.error("Erro ao salvar dados no Firebase:", error);
-                alert("Erro ao salvar dados. Verifique a conexão e as regras do Firebase.");
-            });
-    }
+        if (data) {
+            contas = data; // Dados do Firebase
+        } else if (mes === 10 && anoAtual === '2025') {
+            // Se o nó estiver vazio e for Outubro/2025, carrega os dados de exemplo
+            contas = DADOS_OUTUBRO_2025.map((item, index) => ({...item, id: index + 1}));
+            // Salva os dados de exemplo no Firebase (para que eles apareçam na próxima vez)
+            salvarContas(contas); 
+        } else {
+            contas = []; // Mês sem contas
+        }
+        
+        // Funções de renderização
+        getNextId();
+        popularFiltros(); 
+        aplicarFiltros(); 
+        atualizarRelatorios(contas);
+        atualizarTitulos();
+        
+    }, (error) => {
+        // Tratar erro (Ex: Regras de segurança)
+        console.error("Erro ao carregar dados do Firebase:", error);
+        alert("Não foi possível carregar as contas. Verifique as regras de segurança do Firebase.");
+    });
+}
+
+    function salvarContas(contasArray) {
+    const PATH = getStorageKey();
+    const dbRef = ref(window.db, PATH); 
+
+    // SET: Envia o array completo para o nó do Firebase, sobrescrevendo o que existia.
+    set(dbRef, contasArray)
+        .then(() => {
+            console.log("Dados salvos no Firebase com sucesso no nó: " + PATH);
+        })
+        .catch((error) => {
+            console.error("Erro ao salvar dados no Firebase:", error);
+            alert("Erro ao salvar dados no Firebase. Verifique as Regras de Segurança!");
+        });
+}
     
     function popularFiltros() {
         const cats = [...new Set(contas.map(c => c.cat))].sort();
@@ -956,7 +936,6 @@
                 novaConta.parc = novaParc;
                 novaConta.desc = novaDesc;
 
-                // ALTERADO: Chamada para a nova função assíncrona
                 salvarNovaContaRecorrente(novaConta, targetMonthStr, targetYearStr);
 
                 contasDestino.push(`${getMonthName(targetMonthStr)}/${targetYearStr} (${novaParc})`);
@@ -967,28 +946,38 @@
         alert(`Despesa duplicada com sucesso para ${numParcelas} mês(es) seguintes: \n${contasDestino.join('\n')}`);
     });
 
-    // ALTERADO: salvarNovaContaRecorrente AGORA É ASYNC e usa Firebase (get/set)
-    async function salvarNovaContaRecorrente(novaConta, mesDestino, anoDestino) {
-        const dbRefDestino = getDBRef(mesDestino, anoDestino);
+    function salvarNovaContaRecorrente(novaConta, mesDestino, anoDestino) {
+    const PATH_DESTINO = getStorageKey(mesDestino, anoDestino);
+    const dbRefDestino = ref(window.db, PATH_DESTINO);
+    
+    // 1. Usamos GET para ler o estado atual do mês de destino (operação assíncrona)
+    get(dbRefDestino).then((snapshot) => {
+        // Pega o array do Firebase, ou um array vazio se o nó não existir
+        let contasDestino = snapshot.val() || [];
         
-        try {
-            // 1. Carrega as contas existentes no mês de destino
-            const snapshot = await get(dbRefDestino);
-            let contasDestino = snapshot.val() || [];
-            
-            // 2. Determina o próximo ID (mantendo a lógica sequencial)
-            let maxIdDestino = 0;
-            contasDestino.forEach(c => { if (c.id > maxIdDestino) maxIdDestino = c.id; });
-            novaConta.id = maxIdDestino + 1;
+        // 2. Lógica de ID 
+        let maxIdDestino = 0;
+        contasDestino.forEach(c => { if (c.id > maxIdDestino) maxIdDestino = c.id; });
+        novaConta.id = maxIdDestino + 1; 
 
-            // 3. Adiciona e salva no Firebase
-            contasDestino.push(novaConta);
-            await set(dbRefDestino, contasDestino); 
+        // 3. Adiciona a nova conta e salva o array completo
+        contasDestino.push(novaConta);
+
+        // SET: Salva a nova lista completa no Firebase
+        set(dbRefDestino, contasDestino)
+            .then(() => {
+                 console.log(`Conta recorrente salva com sucesso em ${mesDestino}/${anoDestino}`);
+            })
+            .catch((error) => {
+                console.error("Erro ao salvar conta recorrente:", error);
+                alert("Erro ao salvar conta recorrente no Firebase. Verifique o console!");
+            });
             
-        } catch(error) {
-            console.error(`Erro ao salvar conta recorrente para ${mesDestino}/${anoDestino} no Firebase:`, error);
-        }
-    }
+    }).catch(error => {
+         console.error("Erro ao ler dados de destino para recorrência:", error);
+         alert("Erro de leitura do mês de destino no Firebase.");
+    });
+}
 
     function fecharEdicao() {
         if (linhaEmEdicao) {
@@ -1184,13 +1173,12 @@
     }
     
     
-    // --- FUNÇÕES DE BACKUP E RESTAURAÇÃO (MANTÊM localStorage PARA COMPATIBILIDADE DE BACKUP) ---
+    // --- FUNÇÕES DE BACKUP E RESTAURAÇÃO ---
     
     function createBackup() {
         const backupData = {};
         let totalItems = 0;
         
-        // Esta função AINDA usa localStorage, apenas para fins de backup do histórico.
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
             if (key.startsWith('contas_')) {
@@ -1250,12 +1238,6 @@
     function restoreBackup(backupData) {
         let itemsRestored = 0;
         
-        // Não podemos restaurar diretamente para o Firebase sem um login.
-        // O método mais seguro, por enquanto, é restaurar para o localStorage, 
-        // e o Firebase carregará esses dados na próxima vez que forem necessários 
-        // em um mês específico (simulando a migração).
-        
-        // 1. Limpa os dados de localStorage 'contas_'
         const keysToRemove = [];
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
@@ -1265,7 +1247,6 @@
         }
         keysToRemove.forEach(key => localStorage.removeItem(key));
         
-        // 2. Restaura o backup para localStorage
         for (const key in backupData) {
             if (key.startsWith('contas_')) {
                 localStorage.setItem(key, backupData[key]);
@@ -1274,8 +1255,7 @@
         }
 
         if (itemsRestored > 0) {
-            alert(`Restauração concluída. ${itemsRestored} meses de dados foram restaurados para o armazenamento local. O Firebase carregará estes dados ao mudar de mês.`);
-            // Apenas recarrega o mês atual
+            alert(`Restauração concluída. ${itemsRestored} meses de dados foram restaurados.`);
             carregarContas(); 
             openTab(null, 'visualizacao'); 
         } else {
@@ -1353,7 +1333,6 @@
         const mesSelector = document.getElementById('mes-selector');
         const anoSelector = document.getElementById('ano-selector');
 
-        // Adiciona anos dinamicamente (seu código original)
         for (let y = today.getFullYear() - 2; y <= today.getFullYear() + 5; y++) {
              const option = document.createElement('option');
              option.value = String(y);
@@ -1367,10 +1346,9 @@
         mesAtual = currentMonth;
         anoAtual = currentYear;
 
-        // Chamada assíncrona para carregar do Firebase
         carregarContas();
         
-        // openTab é chamado DENTRO de carregarContas para garantir que os dados estejam prontos
+        openTab(null, 'visualizacao'); 
     };
 </script>
 
